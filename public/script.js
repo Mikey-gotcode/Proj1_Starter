@@ -25,6 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
     addPasswordButton.addEventListener('click', handleAddPassword);
   }
 
+  setupGeneratorEventListeners();
+
   // The most important step: Load or create the vault
   loadOrCreateVault();
 });
@@ -145,6 +147,120 @@ function clearPasswordGrid() {
   if (passwordGrid) {
     passwordGrid.innerHTML = ''; // Remove all children (the mock cards)
   }
+}
+
+// --- PASSWORD GENERATOR IMPLEMENTATION ---
+
+const CHAR_SETS = {
+    uppercase: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+    lowercase: 'abcdefghijklmnopqrstuvwxyz',
+    numbers: '0123456789',
+    special: '!@#$%^&*()_+=-'
+};
+
+/**
+ * Generates a random password based on the current UI settings.
+ */
+function generatePassword() {
+    const length = parseInt(document.getElementById('passwordLengthSlider').value);
+    const includeUppercase = document.getElementById('includeUppercase').checked;
+    const includeLowercase = document.getElementById('includeLowercase').checked;
+    const includeNumbers = document.getElementById('includeNumbers').checked;
+    const includeSpecial = document.getElementById('includeSpecial').checked;
+
+    let allowedChars = '';
+    let requiredChars = '';
+    
+    // Build the pool of allowed characters and ensure at least one of each selected type is included
+    if (includeUppercase) {
+        allowedChars += CHAR_SETS.uppercase;
+        requiredChars += CHAR_SETS.uppercase[Math.floor(Math.random() * CHAR_SETS.uppercase.length)];
+    }
+    if (includeLowercase) {
+        allowedChars += CHAR_SETS.lowercase;
+        requiredChars += CHAR_SETS.lowercase[Math.floor(Math.random() * CHAR_SETS.lowercase.length)];
+    }
+    if (includeNumbers) {
+        allowedChars += CHAR_SETS.numbers;
+        requiredChars += CHAR_SETS.numbers[Math.floor(Math.random() * CHAR_SETS.numbers.length)];
+    }
+    if (includeSpecial) {
+        allowedChars += CHAR_SETS.special;
+        requiredChars += CHAR_SETS.special[Math.floor(Math.random() * CHAR_SETS.special.length)];
+    }
+
+    // If no character set is selected, prevent generation
+    if (allowedChars.length === 0) {
+        document.getElementById('generatedPasswordDisplay').value = "Select a character type!";
+        return;
+    }
+    
+    let password = requiredChars; // Start with required characters
+    const remainingLength = length - requiredChars.length;
+    
+    // Fill the rest of the password length with random characters from the pool
+    for (let i = 0; i < remainingLength; i++) {
+        const randomIndex = Math.floor(Math.random() * allowedChars.length);
+        password += allowedChars[randomIndex];
+    }
+    
+    // Shuffle the result to ensure required characters aren't always at the start
+    password = password.split('').sort(() => Math.random() - 0.5).join('');
+
+    document.getElementById('generatedPasswordDisplay').value = password;
+}
+
+/**
+ * Copies the generated password to the clipboard.
+ */
+function handleCopyPassword() {
+    const passwordField = document.getElementById('generatedPasswordDisplay');
+    
+    // Use the Clipboard API
+    navigator.clipboard.writeText(passwordField.value)
+        .then(() => {
+            alert('Password copied to clipboard!');
+        })
+        .catch(err => {
+            console.error('Could not copy text: ', err);
+            alert('Failed to copy password.');
+        });
+}
+
+/**
+ * Attaches all event listeners for the generator UI elements.
+ */
+function setupGeneratorEventListeners() {
+    const generateButton = document.getElementById('generateButton');
+    const copyButton = document.getElementById('copyButton');
+    const lengthSlider = document.getElementById('passwordLengthSlider');
+    
+    // Attach event listeners to the buttons
+    if (generateButton) {
+        generateButton.addEventListener('click', generatePassword);
+    }
+    if (copyButton) {
+        copyButton.addEventListener('click', handleCopyPassword);
+    }
+    
+    // Attach event listeners to all control elements (slider and checkboxes)
+    // to regenerate password instantly when settings change
+    [
+        lengthSlider,
+        document.getElementById('includeUppercase'),
+        document.getElementById('includeLowercase'),
+        document.getElementById('includeNumbers'),
+        document.getElementById('includeSpecial')
+    ].forEach(element => {
+        if (element) {
+            // Note: Slider is using the oninput in HTML, but we'll add one here too for consistency
+            element.addEventListener('input', generatePassword);
+            element.addEventListener('change', generatePassword); // Checkboxes use 'change'
+        }
+    });
+    
+    // Generate an initial password when the page loads
+    generatePassword();
 }
 
 /**
