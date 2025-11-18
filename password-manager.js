@@ -2,8 +2,9 @@
 
 /********* External Imports ********/
 
-const { stringToBuffer, bufferToString, encodeBuffer, decodeBuffer, getRandomBytes } = require("./lib");
-const { subtle } = require('crypto').webcrypto;
+import { stringToBuffer, bufferToString, encodeBuffer, decodeBuffer, getRandomBytes } from "./lib";
+import { webcrypto } from 'node:crypto';
+const { subtle } = webcrypto;
 
 /********* Constants ********/
 
@@ -121,4 +122,4 @@ class Keychain {
   };
 };
 
-module.exports = { Keychain }
+export default { Keychain }
